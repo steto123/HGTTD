@@ -22,6 +22,7 @@ from search_worker import SearchWorker
 from viewer_3d import Molecule3DWidget, Molecule3DDialog
 from viewer_spectrum import SpectrumViewerWidget
 from viewer_ms import MSViewerWidget
+from viewer_ir import ModernIRViewer
 from logbook_widget import LogbookWidget
 from logbook_manager import logbook_manager
 from mona_manager import MonaManager
@@ -236,7 +237,11 @@ class ModernMainWindow(QMainWindow):
         self.viewer_ms_widget.switch_to_details_requested.connect(lambda: self.right_tabs.setCurrentIndex(0))
         self.right_tabs.addTab(self.viewer_ms_widget, t("tab_ms_spectrum"))
 
-        # Tab 4: Persistent Research Logbook & Bookmarks
+        # Tab 4: Embedded IR Spectrum Viewer (SQuIRL / NIST)
+        self.viewer_ir_widget = ModernIRViewer(self)
+        self.right_tabs.addTab(self.viewer_ir_widget, t("tab_ir_spectrum"))
+
+        # Tab 5: Persistent Research Logbook & Bookmarks
         self.logbook_widget = LogbookWidget(self)
         self.logbook_widget.load_to_ketcher_requested.connect(self.send_smiles_to_ketcher)
         self.logbook_widget.open_3d_requested.connect(self.show_molecule_in_3d)
@@ -616,6 +621,7 @@ class ModernMainWindow(QMainWindow):
         self.source_combo.addItem(t("source_nmrexp"), "nmrexp")
         self.source_combo.addItem(t("source_nmrshiftdb2"), "nmrshiftdb2")
         self.source_combo.addItem(t("source_mona"), "mona")
+        self.source_combo.addItem(t("source_ir"), "ir")
         self.source_combo.addItem(t("source_all"), "all")
         search_layout.addWidget(self.source_combo)
 
@@ -821,7 +827,8 @@ class ModernMainWindow(QMainWindow):
         self.source_combo.setItemText(2, t("source_nmrshiftdb2"))
         if self.source_combo.count() > 3:
             self.source_combo.setItemText(3, t("source_mona"))
-            self.source_combo.setItemText(4, t("source_all"))
+            self.source_combo.setItemText(4, t("source_ir"))
+            self.source_combo.setItemText(5, t("source_all"))
         self.source_combo.blockSignals(False)
 
         self.label_search_nucleus.setText(t("search_nucleus_label"))
@@ -927,7 +934,9 @@ class ModernMainWindow(QMainWindow):
         if self.right_tabs.count() > 3:
             self.right_tabs.setTabText(3, t("tab_ms_spectrum"))
         if self.right_tabs.count() > 4:
-            self.right_tabs.setTabText(4, t("tab_logbook"))
+            self.right_tabs.setTabText(4, t("tab_ir_spectrum"))
+        if self.right_tabs.count() > 5:
+            self.right_tabs.setTabText(5, t("tab_logbook"))
 
         # Retranslate 3D Viewer widget
         self.viewer_3d_widget.retranslate_ui()
@@ -1037,6 +1046,15 @@ class ModernMainWindow(QMainWindow):
                     self.show_ms_spectrum(res)
             except Exception as e:
                 print(f"[HGTTD] Fehler bei open_ms_spectrum: {e}")
+        elif cmd == "open_ir_spectrum":
+            try:
+                idx = int(param)
+                if hasattr(self, 'last_results') and self.last_results and 0 <= idx < len(self.last_results):
+                    res = self.last_results[idx]
+                    self.current_record = res
+                    self.show_ir_spectrum(res)
+            except Exception as e:
+                print(f"[HGTTD] Fehler bei open_ir_spectrum: {e}")
         elif cmd == "open_spectrum":
             self.open_current_mol_spectrum()
         elif cmd == "export_report_current":
@@ -1192,6 +1210,19 @@ class ModernMainWindow(QMainWindow):
         name = record.get("name") or "MS"
         self.status_label.setText(f"MoNa: Massenspektrum geladen ({name})")
 
+    def show_ir_spectrum(self, record):
+        if not record:
+            return
+        self.right_tabs.blockSignals(True)
+        self.right_tabs.setCurrentIndex(4)
+        self.right_tabs.blockSignals(False)
+        wn = record.get("wavenumbers", [])
+        intens = record.get("intensities", [])
+        name = record.get("name") or record.get("id") or "IR"
+        src = record.get("source") or "IR"
+        self.viewer_ir_widget.set_spectrum_data(wn, intens, compound_name=name, source=src)
+        self.status_label.setText(f"IR: Infrarotspektrum geladen ({name})")
+
     def on_tab_changed(self, index):
         if index == 1:
             if self.current_record and self.current_record.get("smiles"):
@@ -1206,6 +1237,14 @@ class ModernMainWindow(QMainWindow):
                 if self.viewer_ms_widget.current_record != self.current_record:
                     self.viewer_ms_widget.load_record(self.current_record)
         elif index == 4:
+            if self.current_record and hasattr(self, 'viewer_ir_widget'):
+                wn = self.current_record.get("wavenumbers", [])
+                intens = self.current_record.get("intensities", [])
+                if wn and intens:
+                    name = self.current_record.get("name") or self.current_record.get("id") or "IR"
+                    src = self.current_record.get("source") or "IR"
+                    self.viewer_ir_widget.set_spectrum_data(wn, intens, compound_name=name, source=src)
+        elif index == 5:
             if hasattr(self, 'logbook_widget'):
                 self.logbook_widget.refresh_data()
 
@@ -1666,6 +1705,12 @@ class ModernMainWindow(QMainWindow):
                     <h3>{t('welcome_card_mona_title')}</h3>
                     <p>{t('welcome_card_mona_text')}</p>
                     <div class="badge-stat">{t('welcome_card_mona_badge')}</div>
+                </div>
+
+                <div class="card">
+                    <h3>{t('welcome_card_ir_title')}</h3>
+                    <p>{t('welcome_card_ir_text')}</p>
+                    <div class="badge-stat">{t('welcome_card_ir_badge')}</div>
                 </div>
 
                 <div class="card">
@@ -2370,6 +2415,43 @@ class ModernMainWindow(QMainWindow):
                 <h3 class="section-title">Charakteristische Fragmente ({res.get('peaks_count', len(top_peaks))} Peaks)</h3>
                 """
                 spec_btn_html = f'<button type="button" class="btn-load-spectrum" style="background:#7c3aed; border-color:#a855f7;" onclick="hgttdAction(\'open_ms_spectrum\', {i})">⚡ {t("btn_view_ms_spectrum")}</button>'
+            elif db_source == "IR":
+                source_badge = '<span class="badge-db" style="background:#dc2626; color:#fee2e2;">🔴 SQuIRL & NIST (IR)</span>'
+                nucleus_badge = f'<span class="badge-nuc" style="background:#b91c1c;">{res.get("theory_level", "IR")}</span>'
+                doi_link = ""
+                has_assignment = False
+
+                wn_list = res.get("wavenumbers", [])
+                intens_list = res.get("intensities", [])
+                top_ir = sorted(zip(wn_list, intens_list), key=lambda x: x[1], reverse=True)[:8]
+                peak_rows = []
+                for pk_wn, pk_int in top_ir:
+                    peak_rows.append(f"""
+                    <tr>
+                        <td class="shift-cell" style="color:#f87171; font-weight:600;">{pk_wn:.1f} cm⁻¹</td>
+                        <td><strong>{pk_int:.2f}</strong></td>
+                    </tr>
+                    """)
+                ir_table_body = "".join(peak_rows) if peak_rows else f"<tr><td colspan='2'>{t('no_spec_data')}</td></tr>"
+                spectrum_html = f"""
+                <div class="table-container">
+                    <table class="spec-table">
+                        <thead><tr><th>Wellenzahl</th><th>Intensität (km/mol)</th></tr></thead>
+                        <tbody>{ir_table_body}</tbody>
+                    </table>
+                </div>
+                """
+                raw_text_html = ""
+                meta_info_html = f"""
+                <div class="meta-info">
+                    <strong>Quelle:</strong> {res.get('source', 'SQuIRL')} ({res.get('source_type', 'DFT')})<br>
+                    <strong>Methode:</strong> {res.get('theory_level', 'ωB97X-D/aug-cc-pVTZ')}<br>
+                    <strong>Zustand:</strong> {res.get('state', 'Gas')}<br>
+                    <strong>Modenanzahl:</strong> {res.get('n_peaks', len(wn_list))} Schwingungsmoden<br>
+                </div>
+                <h3 class="section-title">Hauptschwingungsbanden</h3>
+                """
+                spec_btn_html = f'<button type="button" class="btn-load-spectrum" style="background:#dc2626; border-color:#f87171;" onclick="hgttdAction(\'open_ir_spectrum\', {i})">🔴 {t("btn_view_ir_spectrum")}</button>'
             else:
                 source_badge = f'<span class="badge-db">{db_source}</span>'
                 nucleus_badge = f'<span class="badge-nuc" style="background:{nucleus_color};">{nmr_type}</span>'

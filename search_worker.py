@@ -7,6 +7,7 @@ from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors
 from rdkit.Chem.Draw import rdMolDraw2D
 
 from nmrexp_manager import NMRexpManager
+from ir_manager import IRManager
 
 # Suppress RDKit logs
 RDLogger.DisableLog('rdApp.*')
@@ -20,13 +21,14 @@ class SearchWorker(QThread):
         self.query_smiles = query_smiles
         self.sdf_path = sdf_path
         self.parquet_path = parquet_path
-        self.source_choice = source_choice # "nmrshiftdb2", "nmrexp", "mona", "both", or "all"
+        self.source_choice = source_choice # "nmrshiftdb2", "nmrexp", "mona", "ir", "both", or "all"
         self.nucleus_filter = nucleus_filter # "all", "1H", "13C", "19F", "31P", "11B", "29Si"
         self.search_mode = search_mode # "exact", "substructure", or "similarity"
         self.max_results = max_results # 50, 100, 250, 500, or 0 (all)
         self.min_similarity = min_similarity # float 0.6 .. 0.9
         self.is_cancelled = False
         self.nmrexp_mgr = NMRexpManager(parquet_path=parquet_path)
+        self.ir_mgr = IRManager()
 
     def cancel(self):
         """Signals the worker to abort search gracefully."""
@@ -335,6 +337,35 @@ class SearchWorker(QThread):
             print(f"[SearchWorker] Fehler bei MoNa-Suche: {e}")
             return []
 
+    def search_ir(self, query_mol):
+        """Search SQuIRL & NIST IR database for exact or substructure matches."""
+        try:
+            if not self.ir_mgr.is_available():
+                return []
+            results = []
+            if self.search_mode == "substructure":
+                self.progress_signal.emit("Durchsuche IR-Datenbank (SQuIRL/NIST Substruktur)...")
+                hits = self.ir_mgr.search_substructure(
+                    self.query_smiles,
+                    max_hits=self.max_results if (self.max_results and self.max_results > 0) else 100
+                )
+            else:
+                self.progress_signal.emit("Durchsuche IR-Datenbank (SQuIRL/NIST Exakt)...")
+                hits = self.ir_mgr.search_exact(self.query_smiles)
+
+            for r in hits:
+                if self.is_cancelled:
+                    break
+                smi = r.get("smiles", "")
+                mol = Chem.MolFromSmiles(smi) if smi else None
+                r["svg"] = self.draw_annotated_mol(mol) if mol else ""
+                r["source_db"] = "IR"
+                results.append(r)
+            return results
+        except Exception as e:
+            print(f"[SearchWorker] Fehler bei IR-Suche: {e}")
+            return []
+
     def run(self):
         try:
             query_mol = Chem.MolFromSmiles(self.query_smiles)
@@ -382,6 +413,12 @@ class SearchWorker(QThread):
                 if not self.max_results or self.max_results <= 0 or len(all_results) < self.max_results:
                     mona_results = self.search_mona(query_mol)
                     all_results.extend(mona_results)
+
+            # 4. Search IR (SQuIRL & NIST) if selected
+            if not self.is_cancelled and self.source_choice in ("ir", "all"):
+                if not self.max_results or self.max_results <= 0 or len(all_results) < self.max_results:
+                    ir_results = self.search_ir(query_mol)
+                    all_results.extend(ir_results)
 
             # Cap results if max_results is set
             if self.max_results and self.max_results > 0 and len(all_results) > self.max_results:

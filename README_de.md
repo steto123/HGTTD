@@ -7,8 +7,9 @@
 [![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/NMRexp%20Data-CC%20BY--NC--ND%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-nd/4.0/)
 [![License: CC BY 4.0](https://img.shields.io/badge/MoNa%20Data-CC%20BY%204.0-green.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![License: Wavefunction Notice](https://img.shields.io/badge/est--NMR-Wavefunction%2C%20Inc.-blue.svg)](https://doi.org/10.1021/acs.joc.4c02914)
+[![License: CC BY 4.0](https://img.shields.io/badge/SQuIRL%20IR-CC%20BY%204.0-red.svg)](https://doi.org/10.6084/m9.figshare.30734843)
 
-> *"DON'T PANIC"* — Der interaktive chemische Desktop-Begleiter zur Erkundung von über **3,37 Millionen experimentellen NMR-Spektren**, **54.000 3D-Molekülgeometrien** und **1,75 Millionen hochauflösenden Massenspektren (MoNa)**. Mit physikalischer Spektren-Synthese, automatischer Peak-Zuordnung mittels Deep Learning (**est-NMR / DLNMR1**), interaktivem MS-Stick-Viewer mit Neutral-Loss-Rechner und IUPAC JCAMP-DX / NIST MSP Export.
+> *"DON'T PANIC"* — Der interaktive chemische Desktop-Begleiter zur Erkundung von über **3,37 Millionen experimentellen NMR-Spektren**, **54.000 3D-Molekülgeometrien**, **1,75 Millionen Massenspektren (MoNa)** und **133.883 Infrarotspektren (SQuIRL & NIST)**. Mit physikalischer Spektren-Synthese, automatischer Peak-Zuordnung mittels Deep Learning (**est-NMR / DLNMR1**), interaktivem MS-Stick-Viewer mit Neutral-Loss-Rechner, 60-FPS FT-IR-Transmittanz/Absorptions-Viewer und IUPAC JCAMP-DX / NIST MSP Export.
 
 ---
 
@@ -21,7 +22,8 @@
    - [2. est-NMR & DLNMR1 Modell (Wavefunction, Inc. / JOC 2025)](#2-est-nmr--dlnmr1-deep-learning-modell)
    - [3. nmrshiftdb2 (Universität zu Köln)](#3-nmrshiftdb2-datenbank)
    - [4. MassBank of North America - MoNa (UC Davis)](#4-massbank-of-north-america-mona)
-   - [5. Eingebundene Open-Source Komponenten](#5-eingebundene-open-source-software--bibliotheken)
+   - [5. SQuIRL & NIST Infrarot-Spektrenbibliothek](#5-squirl--nist-infrarot-spektrenbibliothek)
+   - [6. Eingebundene Open-Source Komponenten](#6-eingebundene-open-source-software--bibliotheken)
 4. [Systemarchitektur & Technologien](#systemarchitektur--technologien)
 5. [Installation & Schnellstart](#installation--schnellstart)
 6. [Bedienungsanleitung](#bedienungsanleitung)
@@ -33,6 +35,7 @@
    - [KI-gestützte Auto-Zuordnung (Auto-Assignment)](#ki-gestützte-auto-zuordnung-auto-assignment)
    - [Automatisierter Laborbericht (HTML/PDF-Export)](#automatisierter-laborbericht-htmlpdf-export)
    - [Massenspektren-Viewer & Neutral-Loss-Rechner (MoNa)](#massenspektren-viewer--neutral-loss-rechner-mona)
+   - [Infrarotspektren-Viewer & Banden-Annotation (SQuIRL & NIST)](#infrarotspektren-viewer--banden-annotation-squirl--nist)
    - [3D-Molekülbetrachter & Kraftfeld-Optimierung](#3d-molekülbetrachter--kraftfeld-optimierung)
 7. [Projektstruktur](#projektstruktur)
 8. [Lizenz des Projekts](#lizenz-des-projekts)
@@ -46,8 +49,9 @@
 - **NMRexp**: 3.372.987 experimentelle NMR-Datensätze über **6 Kerne** (¹H, ¹³C, ¹⁹F, ³¹P, ¹¹B, ²⁹Si), extrahiert aus knapp 200.000 wissenschaftlichen Publikationen (2010–2024).
 - **nmrshiftdb2**: Über 54.000 organische Moleküle mit DFT-optimierten 3D-Koordinaten und experimentellen ¹³C-Verschiebungen.
 - **MassBank of North America (MoNa)**: 1.756.800 experimentelle Massenspektren und 271.982 Verbindungen der UC Davis (Oliver Fiehn Lab), unterteilt in hochauflösende LC-MS/MS (Agilent QTOF & Orbitrap) und GC-MS (Elektronenstoß-Ionisation EI 70 eV).
+- **SQuIRL & NIST (IR)**: 133.883 hochpräzise DFT-Schwingungsspektren ($\omega$B97X-D/aug-cc-pVTZ) und experimentelle Infrarotspektren.
 
-Ergänzt wird die Datenbanksuche durch eine **lokale Deep-Learning-Inferenz-Engine** (**est-NMR / DLNMR1** von Wavefunction, Inc.) zur ultraschnellen chemischen Verschiebungsberechnung und einem Algorithmus zum **Symmetrie-Averaging und bipartiten Kuhn-Munkres-Matching** für die automatische Zuordnung experimenteller Signale zu Atomzentren, sowie einen **interaktiven MS-Stick-Viewer mit Neutral-Loss-Rechner**.
+Ergänzt wird die Datenbanksuche durch eine **lokale Deep-Learning-Inferenz-Engine** (**est-NMR / DLNMR1** von Wavefunction, Inc.) zur ultraschnellen chemischen Verschiebungsberechnung, einem Algorithmus zum **Symmetrie-Averaging und bipartiten Kuhn-Munkres-Matching** für die automatische Peak-Zuordnung, einem **interaktiven MS-Stick-Viewer mit Neutral-Loss-Rechner** sowie einem **interaktiven 60-FPS FT-IR-Transmittanz/Extinktions-Viewer**.
 
 ---
 
@@ -59,7 +63,7 @@ Ergänzt wird die Datenbanksuche durch eine **lokale Deep-Learning-Inferenz-Engi
   - Tab `📔 Logbuch` (Shortcut `Alt+5`) mit Lesezeichen (`⭐ Favoriten`), vollständiger Aktivitätshistorie (`🕒 Verlauf`), Suchfilter, Notizen- und Tag-Editor sowie Direktaufrufen (Ketcher, 3D, NMR).
   - Ein-Klick-Lesezeichen-Schaltflächen in der Durchblättern-Ansicht und auf jeder Suchergebniskarte.
 - 🎯 **Multimodale Struktursuche (Exakt, Substruktur & Ähnlichkeit)**:
-  - Suche über NMRexp, nmrshiftdb2, MoNa MS oder alle Quellen parallel.
+  - Suche über NMRexp, nmrshiftdb2, MoNa MS, SQuIRL/NIST IR oder alle Quellen parallel.
   - **🔮 Tanimoto-Ähnlichkeitssuche**: ECFP4-Morgan-Fingerprints (Radius 2, 2048 Bit) mit einstellbarem Schwellenwert (>= 60 %, >= 70 %, >= 80 %, >= 90 %) und Prozent-Score-Badges.
   - Atom- und bindungsgenaues **Cyan-Highlighting (`#38bdf8`)** bei Substruktursuchen.
   - Vorkompilierte Indexe für Substruktursuchen in Millisekunden.
@@ -93,6 +97,13 @@ Ergänzt wird die Datenbanksuche durch eine **lokale Deep-Learning-Inferenz-Engi
   - Interaktiver 60-FPS **MS-Stick-Spektren-Viewer** (`viewer_ms.py`) mit tabellarischer Peak-Übersicht und **CSV-Export**.
   - **Neutral-Loss Rechner**: Automatische Identifizierung von Neutralabspaltungen ($-\text{H}_2\text{O}$, $-\text{CO}$, $-\text{NH}_3$, etc.) per Peak-Klick.
   - Export von Massenspektren im **NIST MSP**- und **IUPAC JCAMP-DX 5.01**-Format.
+- 🔴 **Infrarotspektroskopie-Integration (SQuIRL & NIST IR)**:
+  - Hochleistungs-Parquet-Datenbank mit **133.883 Schwingungsspektren** und Substruktur-Index.
+  - Interaktiver 60-FPS **FT-IR Canvas-Viewer** (`viewer_ir.py`) mit standardmäßiger Wellenzahl-Achse ($4000 \dots 400\text{ cm}^{-1}$).
+  - Umschaltung zwischen **📉 Transmittanz (%T)** und **📈 Extinktion (Absorbance)**.
+  - Kontinuierliche Lorentz-Faltung mit einstellbarer **Linienbreite (FWHM)** ($4 \dots 30\text{ cm}^{-1}$).
+  - **Banden-Annotation für funktionelle Gruppen**: Kennzeichnung von $\text{O-H}$, $\text{N-H}$, $\text{C-H}$, $\text{C=O}$ Carbonyl, $\text{C}\equiv\text{C}$, Fingerprint-Bereich etc.
+  - Standardkonformer **IUPAC JCAMP-DX 5.01 Export** (`##DATA TYPE= INFRARED SPECTRUM`).
 
 ---
 
@@ -187,7 +198,23 @@ Die massenspektrometrischen Datensätze (LC-MS/MS & GC-MS) stammen aus der freie
 
 ---
 
-### 5. Eingebundene Open-Source Software & Bibliotheken
+### 5. SQuIRL & NIST Infrarot-Spektrenbibliothek
+
+Die integrierten IR-Spektrendatensätze kombinieren quantenchemische DFT-Berechnungen mit experimentellen Referenzdaten:
+
+- **SQuIRL Datensatz (Spectral Quantum Chemistry and Infrared Resonance Library):**
+  > **DOI:** [10.6084/m9.figshare.30734843](https://doi.org/10.6084/m9.figshare.30734843)  
+  > Enthält hochpräzise anharmonische und harmonische Schwingungsfrequenzen, IR-Intensitäten und Elektrostatik für **133.883 organische Verbindungen**, berechnet auf $\omega\text{B97X-D}/\text{aug-cc-pVTZ}$-Niveau.
+  - **Lizenz:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
+
+- **NIST Chemistry WebBook (SRD 69):**
+  - **Herausgeber:** National Institute of Standards and Technology (NIST), Gaithersburg, MD, USA.
+  - **Inhalt:** Experimentelle Gasphasen- und Flüssig-Infrarotspektren im IUPAC JCAMP-DX-Format.
+  - **Website:** [https://webbook.nist.gov/chemistry/](https://webbook.nist.gov/chemistry/)
+
+---
+
+### 6. Eingebundene Open-Source Software & Bibliotheken
 
 HGTTD nutzt eine Reihe hochkarätiger Open-Source-Bibliotheken:
 
@@ -374,9 +401,13 @@ HGTTD/
 ├── nmrexp_manager.py              # Hochleistungs-Engine für NMRexp Parquet & Vorfilter
 ├── database_manager.py            # Verwaltung der nmrshiftdb2 SDF-Datenbank
 ├── mona_manager.py                # MoNa MassBank Engine, Parquet-Pipeline & mz_index
+├── ir_manager.py                  # SQuIRL & NIST Infrarot-Datenbankmanager & Faltung
 ├── spectrum_generator.py          # Lorentz-Faltung, Pascal-Bäume & JCAMP-DX 5.01 Exporter
 ├── viewer_spectrum.py             # Interaktiver 60-FPS HTML5-Canvas NMR-Spektren-Viewer
 ├── viewer_ms.py                   # Interaktiver 60-FPS HTML5-Canvas MS-Stick-Viewer & Neutral-Loss Rechner
+├── viewer_ir.py                   # Interaktiver 60-FPS HTML5-Canvas FT-IR-Viewer & Banden-Annotator
+├── download_and_compile_mona.py   # Downloader & Compiler für MoNa-Daten
+├── download_and_compile_ir.py     # Downloader & Compiler für SQuIRL HDF5 / Figshare Daten
 ├── logbook_manager.py             # Persistente SQLite-Verwaltung für Notizen, Tags, Favoriten & Historie
 ├── logbook_widget.py              # Qt-Tab für Forschungs-Logbuch, Lesezeichen und Aktivitäten
 ├── report_generator.py            # Generierung druckfertiger A4-Laborberichte (HTML/PDF)
@@ -390,17 +421,22 @@ HGTTD/
 ├── mona/                          # MassBank of North America Datenbank & Indizes
 │   ├── mona_spectra.parquet       # 1.756.800 Massenspektren (GC-MS & LC-MS/MS QTOF)
 │   ├── unique_smiles_index.parquet# Vorfilter-Index für Substruktursuche (270k SMILES)
-│   ├── mz_index.npz               # Binärer Precursor-m/z-Index
-│   └── downloads/                 # Heruntergeladene Original-MSP-Archive
+│   └── mz_index.npz               # Binärer Precursor-m/z-Index
+├── ir/                            # SQuIRL & NIST Infrarot-Datenbank & Indizes
+│   ├── ir_spectra.parquet         # 133.883 DFT Infrarotspektren (ωB97X-D)
+│   ├── unique_smiles_index.parquet# Vorfilter-Index für Substruktursuche (134k SMILES)
+│   └── downloads/                 # Heruntergeladenes SQuIRL HDF5 Archiv
 ├── nmr_exp/
 │   ├── NMRexp_10to24_1_1004.parquet # 3,37M Spektrendatensätze
 │   ├── nuclei_index.npz           # Vorkompilierter Kern-Index
-│   ├── unique_smiles_index.parquet# Vorfilter-Index für Substruktursuche
+│   └── unique_smiles_index.parquet# Vorfilter-Index für Substruktursuche
 │   └── NMRexp- Database.pdf       # Original-Publikation (Nature Sci. Data 2025)
 ├── ketcher/                       # Lokale Ketcher-Editor-Dateien
-├── python-portable/               # Autarke Python-3.11-Umgebung mit allen Modulen
-├── config.json                    # Konfigurationsdatei (Sprache, Suchpräferenzen)
-└── protokoll.md                   # Entwicklungs- und Testprotokoll
+├── requirements.txt               # Python Paket-Abhängigkeiten
+├── config.example.json            # Konfigurationsvorlage
+├── README.md                      # Englische Dokumentation
+├── README_de.md                   # Deutsche Dokumentation
+└── LICENSE                        # MIT-Lizenz
 ```
 
 ---
@@ -414,3 +450,4 @@ Die enthaltenen Datenbanken und Modelle unterliegen ihren jeweiligen Lizenzen un
 - **est-NMR / DLNMR1 Modell:** © 2025 Wavefunction, Inc. ([Wavefunction Notice / JOC 2025](https://doi.org/10.1021/acs.joc.4c02914)).
 - **nmrshiftdb2:** © 2003–2026 nmrshiftdb2 Team ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)).
 - **MassBank of North America (MoNa):** © UC Davis Genome Center / Fiehn Lab ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+- **SQuIRL Infrarot-Datensatz:** © 2024–2025 Die Autoren ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
