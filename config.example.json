@@ -1,0 +1,9 @@
+{
+  "language": "de",
+  "source_db_path": "",
+  "local_sdf_name": "nmrshiftdb2_3D_OPTIMIZED_with_props.sdf",
+  "nmrexp_parquet_path": "nmr_exp/NMRexp_10to24_1_1004.parquet",
+  "search_nucleus": "all",
+  "search_mode": "exact",
+  "max_hits": 100
+}

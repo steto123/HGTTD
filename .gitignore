@@ -1,0 +1,65 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments & embedded runtimes
+python-portable/
+venv/
+.venv/
+env/
+ENV/
+
+# Large scientific databases & datasets (exceed GitHub 100MB limit & downloaded via scripts)
+*.sdf
+*.parquet
+*.npz
+mona/downloads/
+nmr_exp/*.parquet
+nmr_exp/*.npz
+mona/*.parquet
+mona/*.npz
+
+# Caches
+.cache/
+*/.cache/
+**/.cache/
+
+# Local user data & state
+user_logbook.db
+config.json
+*.jdx
+*.html
+*.pdf
+Laborbericht_*
+
+# OS / Editor metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
