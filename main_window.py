@@ -1220,7 +1220,9 @@ class ModernMainWindow(QMainWindow):
         intens = record.get("intensities", [])
         name = record.get("name") or record.get("id") or "IR"
         src = record.get("source") or "IR"
-        self.viewer_ir_widget.set_spectrum_data(wn, intens, compound_name=name, source=src)
+        smi = record.get("smiles", "")
+        cas = record.get("cas", "")
+        self.viewer_ir_widget.set_spectrum_data(wn, intens, compound_name=name, source=src, smiles=smi, cas=cas)
         self.status_label.setText(f"IR: Infrarotspektrum geladen ({name})")
 
     def on_tab_changed(self, index):
@@ -1243,7 +1245,9 @@ class ModernMainWindow(QMainWindow):
                 if wn and intens:
                     name = self.current_record.get("name") or self.current_record.get("id") or "IR"
                     src = self.current_record.get("source") or "IR"
-                    self.viewer_ir_widget.set_spectrum_data(wn, intens, compound_name=name, source=src)
+                    smi = self.current_record.get("smiles", "")
+                    cas = self.current_record.get("cas", "")
+                    self.viewer_ir_widget.set_spectrum_data(wn, intens, compound_name=name, source=src, smiles=smi, cas=cas)
         elif index == 5:
             if hasattr(self, 'logbook_widget'):
                 self.logbook_widget.refresh_data()

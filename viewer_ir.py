@@ -4,13 +4,154 @@ HGTTD — Hitchhiker's Guide through the Database 🌌🪐
 """
 
 import json
-from PySide6.QtCore import Qt, Signal
+import re
+import math
+import urllib.request
+import numpy as np
+from PySide6.QtCore import Qt, Signal, QThread
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QComboBox,
-    QPushButton, QCheckBox, QFileDialog, QMessageBox, QGroupBox
+    QPushButton, QCheckBox, QFileDialog, QMessageBox, QGroupBox, QInputDialog
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from ir_manager import IR_CHARACTERISTIC_BANDS
+
+class NistIRFetchWorker(QThread):
+    finished = Signal(dict, str)  # data_dict, error_msg
+
+    def __init__(self, smiles="", cas=""):
+        super().__init__()
+        self.smiles = smiles
+        self.cas = cas
+
+    def run(self):
+        try:
+            inchi = ""
+            if self.smiles:
+                try:
+                    from rdkit import Chem
+                    mol = Chem.MolFromSmiles(self.smiles)
+                    if mol:
+                        inchi = Chem.MolToInchi(mol)
+                except Exception:
+                    pass
+
+            nid = ""
+            if inchi:
+                url_resolve = f"https://webbook.nist.gov/cgi/cbook.cgi?InChI={inchi}"
+                req = urllib.request.Request(url_resolve, headers={"User-Agent": "Mozilla/5.0"})
+                html = urllib.request.urlopen(req, timeout=10).read().decode("utf-8", errors="ignore")
+                m = re.search(r'ID=(C\d+)&amp;Mask=80', html)
+                if not m:
+                    m = re.search(r'ID=(C\d+)', html)
+                if m:
+                    nid = m.group(1)
+
+            if not nid and self.cas:
+                clean_cas = self.cas.replace("-", "").strip()
+                nid = f"C{clean_cas}"
+
+            if not nid:
+                self.finished.emit({}, "Verbindung konnte im NIST Chemistry WebBook nicht identifiziert werden.")
+                return
+
+            # Check IR mask
+            url_ir = f"https://webbook.nist.gov/cgi/cbook.cgi?ID={nid}&Mask=80"
+            req_ir = urllib.request.Request(url_ir, headers={"User-Agent": "Mozilla/5.0"})
+            html_ir = urllib.request.urlopen(req_ir, timeout=10).read().decode("utf-8", errors="ignore")
+
+            indices = re.findall(r'Index=(\d+)#IR-SPEC', html_ir)
+            if not indices:
+                self.finished.emit({}, f"NIST-Eintrag ({nid}) gefunden, enthält jedoch keine Infrarotspektren.")
+                return
+
+            # Find best index: gas phase (e.g. index '0' or '1' or '2')
+            target_idx = "0" if "0" in indices else indices[0]
+
+            jcamp_url = f"https://webbook.nist.gov/cgi/cbook.cgi?JCAMP={nid}&Index={target_idx}&Type=IR"
+            req_jcamp = urllib.request.Request(jcamp_url, headers={"User-Agent": "Mozilla/5.0"})
+            jcamp_text = urllib.request.urlopen(req_jcamp, timeout=10).read().decode("utf-8", errors="ignore")
+
+            # Parse JCAMP
+            lines = jcamp_text.splitlines()
+            title = "NIST Referenzspektrum"
+            xunits, yunits = "1/CM", "ABSORBANCE"
+            xfactor, yfactor = 1.0, 1.0
+            firstx, lastx = None, None
+            state = ""
+
+            for l in lines:
+                if l.startswith("##TITLE="): title = l.split("=", 1)[1].strip()
+                elif l.startswith("##STATE="): state = l.split("=", 1)[1].strip()
+                elif l.startswith("##XUNITS="): xunits = l.split("=", 1)[1].strip().upper()
+                elif l.startswith("##YUNITS="): yunits = l.split("=", 1)[1].strip().upper()
+                elif l.startswith("##FIRSTX="): firstx = float(l.split("=", 1)[1].strip())
+                elif l.startswith("##LASTX="): lastx = float(l.split("=", 1)[1].strip())
+                elif l.startswith("##XFACTOR="): xfactor = float(l.split("=", 1)[1].strip())
+                elif l.startswith("##YFACTOR="): yfactor = float(l.split("=", 1)[1].strip())
+
+            xy_idx = -1
+            for i, l in enumerate(lines):
+                if l.startswith("##XYDATA="):
+                    xy_idx = i
+                    break
+
+            if xy_idx == -1:
+                self.finished.emit({}, "Kein gültiges JCAMP-XYDATA im NIST-Spektrum gefunden.")
+                return
+
+            all_y = []
+            for l in lines[xy_idx+1:]:
+                if l.startswith("##END="):
+                    break
+                parts = l.strip().split()
+                if not parts:
+                    continue
+                for p in parts[1:]:
+                    try:
+                        all_y.append(float(p) * yfactor)
+                    except ValueError:
+                        pass
+
+            if not all_y or firstx is None or lastx is None:
+                self.finished.emit({}, "Konnte Datenpunkte des NIST-Spektrums nicht dekodieren.")
+                return
+
+            dx = (lastx - firstx) / (len(all_y) - 1)
+            all_x = [firstx + i * dx for i in range(len(all_y))]
+
+            if "MICROMETER" in xunits or "UM" in xunits:
+                all_x = [10000.0 / x if x > 0 else 0.0 for x in all_x]
+
+            if "TRANSMITTANCE" in yunits:
+                max_y = max(all_y) if all_y else 1.0
+                scale = 100.0 if max_y <= 1.05 else 1.0
+                y_trans = [y * scale for y in all_y]
+                y_abs = [-np.log10(max(1e-4, yt / 100.0)) for yt in y_trans]
+            else:
+                y_abs = all_y
+                y_trans = [100.0 * (10.0 ** (-min(5.0, y))) for y in all_y]
+
+            # Downsample to at most 1200 points for smooth Canvas 60 FPS rendering
+            if len(all_x) > 1200:
+                stride = len(all_x) // 1000
+                all_x = all_x[::stride]
+                y_trans = y_trans[::stride]
+                y_abs = y_abs[::stride]
+
+            res = {
+                "nid": nid,
+                "title": title,
+                "state": state,
+                "wavenumbers": [round(x, 2) for x in all_x],
+                "transmittance": [round(y, 3) for y in y_trans],
+                "absorbance": [round(y, 4) for y in y_abs],
+                "raw_jcamp": jcamp_text
+            }
+            self.finished.emit(res, "")
+        except Exception as e:
+            self.finished.emit({}, f"Netzwerk- oder Abfragefehler beim NIST WebBook: {e}")
+
 
 class ModernIRViewer(QWidget):
     """
@@ -81,6 +222,33 @@ class ModernIRViewer(QWidget):
 
         toolbar.addStretch()
 
+        # NIST WebBook Button
+        self.btn_nist = QPushButton("🌐 NIST IR laden")
+        self.btn_nist.setToolTip("Experimentelles Referenzspektrum direkt vom NIST Chemistry WebBook abrufen & einblenden")
+        self.btn_nist.setStyleSheet("""
+            QPushButton {
+                background: #1e1b4b; color: #a5b4fc; border: 1px solid #6366f1;
+                border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: bold;
+            }
+            QPushButton:hover { background: #312e81; color: #c7d2fe; }
+        """)
+        self.btn_nist.clicked.connect(self._fetch_nist_spectrum)
+        toolbar.addWidget(self.btn_nist)
+
+        # Clear NIST Overlay Button (Hidden until loaded)
+        self.btn_clear_nist = QPushButton("✕ NIST")
+        self.btn_clear_nist.setVisible(False)
+        self.btn_clear_nist.setToolTip("NIST-Referenzkurve ausblenden")
+        self.btn_clear_nist.setStyleSheet("""
+            QPushButton {
+                background: #3f1d2e; color: #f472b6; border: 1px solid #db2777;
+                border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold;
+            }
+            QPushButton:hover { background: #500724; }
+        """)
+        self.btn_clear_nist.clicked.connect(self._clear_nist_spectrum)
+        toolbar.addWidget(self.btn_clear_nist)
+
         # Reset Zoom Button
         btn_reset = QPushButton("🔍 Reset Zoom")
         btn_reset.setStyleSheet("""
@@ -114,11 +282,15 @@ class ModernIRViewer(QWidget):
 
         self._render_html()
 
-    def set_spectrum_data(self, wavenumbers, intensities, compound_name="Compound", source="IR"):
+    def set_spectrum_data(self, wavenumbers, intensities, compound_name="Compound", source="IR", smiles="", cas=""):
         self.wavenumbers = [float(x) for x in wavenumbers]
         self.intensities = [float(x) for x in intensities]
         self.compound_name = compound_name
         self.source_label = source
+        self.current_smiles = smiles
+        self.current_cas = cas
+        self.nist_data = None
+        self.btn_clear_nist.setVisible(False)
         self._update_canvas_data()
 
     def clear(self):
@@ -140,6 +312,45 @@ class ModernIRViewer(QWidget):
 
     def _reset_zoom(self):
         self._run_js("resetZoom();")
+
+    def _fetch_nist_spectrum(self):
+        smiles = getattr(self, "current_smiles", "")
+        cas = getattr(self, "current_cas", "")
+        if not smiles and not cas:
+            text, ok = QInputDialog.getText(
+                self, "NIST WebBook Suche",
+                "SMILES oder CAS-Nummer eingeben (z. B. 'CCO' oder '64-17-5'):"
+            )
+            if not ok or not text.strip():
+                return
+            query = text.strip()
+            if "-" in query:
+                cas = query
+            else:
+                smiles = query
+
+        self.btn_nist.setEnabled(False)
+        self.btn_nist.setText("⏳ Lädt NIST...")
+
+        self.nist_worker = NistIRFetchWorker(smiles=smiles, cas=cas)
+        self.nist_worker.finished.connect(self._on_nist_fetched)
+        self.nist_worker.start()
+
+    def _on_nist_fetched(self, data, error):
+        self.btn_nist.setEnabled(True)
+        self.btn_nist.setText("🌐 NIST IR laden")
+        if error or not data:
+            QMessageBox.warning(self, "NIST Chemistry WebBook", error or "Keine Daten gefunden.")
+            return
+
+        self.nist_data = data
+        self.btn_clear_nist.setVisible(True)
+        self._update_canvas_data()
+
+    def _clear_nist_spectrum(self):
+        self.nist_data = None
+        self.btn_clear_nist.setVisible(False)
+        self._update_canvas_data()
 
     def _export_jcamp(self):
         if not self.wavenumbers:
@@ -189,7 +400,8 @@ class ModernIRViewer(QWidget):
             "title": f"{self.compound_name} ({self.source_label})",
             "mode": self.current_mode,
             "fwhm": self.fwhm_slider.value(),
-            "bands": IR_CHARACTERISTIC_BANDS
+            "bands": IR_CHARACTERISTIC_BANDS,
+            "nist": self.nist_data
         }
         json_str = json.dumps(payload)
         self._run_js(f"loadSpectrumData({json_str});")
@@ -440,6 +652,46 @@ class ModernIRViewer(QWidget):
                 ctx.fillStyle = "#475569";
                 ctx.font = `${14 * dpr}px sans-serif`;
                 ctx.fillText("Keine Infrarotspektren-Daten für diese Verbindung vorhanden.", canvas.width / 2 - 180 * dpr, canvas.height / 2);
+            }
+
+            // Draw NIST Experimental Overlay Curve (if loaded)
+            if (data.nist && data.nist.wavenumbers && data.nist.wavenumbers.length > 0) {
+                const nistWn = data.nist.wavenumbers;
+                const nistVals = data.mode === "transmittance" ? data.nist.transmittance : data.nist.absorbance;
+
+                ctx.strokeStyle = "#38bdf8"; // Cyan for NIST experimental
+                ctx.lineWidth = 1.8 * dpr;
+                ctx.beginPath();
+
+                let first = true;
+                for (let i = 0; i < nistWn.length; i++) {
+                    const wn = nistWn[i];
+                    if (wn >= minX && wn <= maxX) {
+                        const px = xToPixel(wn);
+                        const py = yToPixel(nistVals[i], data.mode);
+                        if (first) {
+                            ctx.moveTo(px, py);
+                            first = false;
+                        } else {
+                            ctx.lineTo(px, py);
+                        }
+                    }
+                }
+                ctx.stroke();
+
+                // NIST Overlay Legend
+                const legX = canvas.width - 240 * dpr;
+                const legY = padT - 15 * dpr;
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillRect(legX, legY - 6 * dpr, 16 * dpr, 3 * dpr);
+                ctx.font = `bold ${10 * dpr}px sans-serif`;
+                ctx.fillText(`NIST WebBook (${data.nist.state || 'Exp.'})`, legX + 22 * dpr, legY);
+
+                // Theory Legend
+                ctx.fillStyle = "#ef4444";
+                ctx.fillRect(legX - 110 * dpr, legY - 6 * dpr, 16 * dpr, 3 * dpr);
+                ctx.font = `bold ${10 * dpr}px sans-serif`;
+                ctx.fillText("SQuIRL (DFT)", legX - 88 * dpr, legY);
             }
         }
 
