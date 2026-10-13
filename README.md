@@ -9,7 +9,7 @@
 [![License: Wavefunction Notice](https://img.shields.io/badge/est--NMR-Wavefunction%2C%20Inc.-blue.svg)](https://doi.org/10.1021/acs.joc.4c02914)
 [![Language: DE](https://img.shields.io/badge/Language-German%20Docs-blue)](README_de.md)
 
-> *"DON'T PANIC"* — The interactive chemical desktop companion for exploring over **3.37 million experimental NMR spectra**, **54,000 3D molecular geometries**, and **44,600 high-resolution mass spectra (MoNa)**. Featuring physical spectral synthesis, automated peak assignment via deep learning (**est-NMR / DLNMR1**), interactive MS stick spectrum viewer with neutral loss calculator, and IUPAC JCAMP-DX / NIST MSP export.
+> *"DON'T PANIC"* — The interactive chemical desktop companion for exploring over **3.37 million experimental NMR spectra**, **54,000 3D molecular geometries**, and **1.75 million high-resolution mass spectra (MoNa)**. Featuring physical spectral synthesis, automated peak assignment via deep learning (**est-NMR / DLNMR1**), interactive MS stick spectrum viewer with neutral loss calculator, and IUPAC JCAMP-DX / NIST MSP export.
 
 *Deutsche Dokumentation verfügbar in [README_de.md](README_de.md).*
 
@@ -48,7 +48,7 @@
 
 - **NMRexp**: 3,372,987 experimental NMR datasets across **6 nuclei** (¹H, ¹³C, ¹⁹F, ³¹P, ¹¹B, ²⁹Si), extracted from nearly 200,000 peer-reviewed articles (2010–2024).
 - **nmrshiftdb2**: Over 54,000 organic molecules with DFT-optimized 3D coordinates and experimental ¹³C chemical shifts.
-- **MassBank of North America (MoNa)**: 44,696 experimental mass spectra from the UC Davis Oliver Fiehn Lab, comprising high-resolution LC-MS/MS (Agilent QTOF) and electron ionization GC-MS (EI 70 eV).
+- **MassBank of North America (MoNa)**: 1,756,800 experimental mass spectra and 271,982 distinct compounds from the UC Davis Oliver Fiehn Lab, comprising high-resolution LC-MS/MS (Agilent QTOF & Orbitrap) and electron ionization GC-MS (EI 70 eV).
 
 The database search is powered by a **local deep learning inference engine** (**est-NMR / DLNMR1** by Wavefunction, Inc.) for sub-20 ms chemical shift prediction, a **topological symmetry averaging & bipartite Kuhn-Munkres matching** algorithm for automated experimental peak assignment, and an **interactive MS stick viewer with real-time neutral loss interpretation**.
 
@@ -91,7 +91,7 @@ The database search is powered by a **local deep learning inference engine** (**
 - 🔬 **3D Conformer Viewer (3Dmol.js)**:
   - Interactive WebGL 3D molecular viewer with local **MMFF94 force field geometry optimization** and real-time energy minimization animation.
 - ⚡ **Mass Spectrometry Integration (MassBank of North America - MoNa)**:
-  - High-speed Parquet data pipeline for MoNa (EI GC-MS & high-resolution LC-MS/MS QTOF/Orbitrap).
+  - High-speed Parquet data pipeline for MoNa with **1,756,800 spectra** and **271,982 compounds** (EI GC-MS & high-resolution LC-MS/MS QTOF/Orbitrap).
   - Precursor $m/z$ range search ($\pm\text{ppm} / \text{Da}$) via binary $O(\log N)$ index.
   - Interactive 60 FPS **MS Stick Viewer** (`viewer_ms.py`) with tabular peak inspector and **CSV export**.
   - **Neutral Loss Calculator**: Automatic detection and assignment of common neutral losses ($-\text{H}_2\text{O}$, $-\text{CO}$, $-\text{NH}_3$, etc.) on peak click.
@@ -343,7 +343,7 @@ For ¹H and ¹³C NMR spectra, HGTTD automatically resolves experimental peaks t
 
 ### Mass Spectrum Viewer & Neutral Loss Calculator (MoNa)
 With the integration of **MassBank of North America (MoNa)**:
-1. **Search:** Select **`MoNa MassBank (MS, 45k+)`** or **`All Sources`** and run exact/substructure queries.
+1. **Search:** Select **`MoNa MassBank (MS)`** or **`All Sources`** and run exact/substructure queries across **1,756,800 spectra**.
 2. **MoNa Hit Cards:** Purple cards displaying ionization mode (ESI positive/negative, EI 70 eV), instrument type (QTOF, Orbitrap), precursor $m/z$, adduct type ($[M+H]^+$, $[M+Na]^+$, $[M-H]^-$), collision energy, and top 8 fragment peaks.
 3. **Interactive MS Stick Viewer (Tab 3: `⚡ MS Spectrum`):**
    - $m/z$ axis scaled from left to right, relative intensities from $0\text{ to }100\%$.
@@ -398,8 +398,8 @@ HGTTD/
 ├── models/
 │   └── DLNMR1.pt                  # TorchScript deep learning model (Wavefunction, Inc.)
 ├── mona/                          # MassBank of North America database & indices
-│   ├── mona_spectra.parquet       # 44,696 mass spectra (GC-MS & LC-MS/MS QTOF)
-│   ├── unique_smiles_index.parquet# Substructure prefilter index
+│   ├── mona_spectra.parquet       # 1,756,800 mass spectra (GC-MS & LC-MS/MS QTOF)
+│   ├── unique_smiles_index.parquet# Substructure prefilter index (270k SMILES)
 │   └── mz_index.npz               # Binary precursor m/z index
 ├── nmr_exp/
 │   ├── NMRexp_10to24_1_1004.parquet # 3.37M experimental spectra

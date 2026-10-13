@@ -1663,6 +1663,12 @@ class ModernMainWindow(QMainWindow):
                 </div>
 
                 <div class="card">
+                    <h3>{t('welcome_card_mona_title')}</h3>
+                    <p>{t('welcome_card_mona_text')}</p>
+                    <div class="badge-stat">{t('welcome_card_mona_badge')}</div>
+                </div>
+
+                <div class="card">
                     <h3>{t('welcome_card3_title')}</h3>
                     <p>{t('welcome_card3_text')}</p>
                 </div>

@@ -8,7 +8,7 @@
 [![License: CC BY 4.0](https://img.shields.io/badge/MoNa%20Data-CC%20BY%204.0-green.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![License: Wavefunction Notice](https://img.shields.io/badge/est--NMR-Wavefunction%2C%20Inc.-blue.svg)](https://doi.org/10.1021/acs.joc.4c02914)
 
-> *"DON'T PANIC"* — Der interaktive chemische Desktop-Begleiter zur Erkundung von über **3,37 Millionen experimentellen NMR-Spektren**, **54.000 3D-Molekülgeometrien** und **44.600 hochauflösenden Massenspektren (MoNa)**. Mit physikalischer Spektren-Synthese, automatischer Peak-Zuordnung mittels Deep Learning (**est-NMR / DLNMR1**), interaktivem MS-Stick-Viewer mit Neutral-Loss-Rechner und IUPAC JCAMP-DX / NIST MSP Export.
+> *"DON'T PANIC"* — Der interaktive chemische Desktop-Begleiter zur Erkundung von über **3,37 Millionen experimentellen NMR-Spektren**, **54.000 3D-Molekülgeometrien** und **1,75 Millionen hochauflösenden Massenspektren (MoNa)**. Mit physikalischer Spektren-Synthese, automatischer Peak-Zuordnung mittels Deep Learning (**est-NMR / DLNMR1**), interaktivem MS-Stick-Viewer mit Neutral-Loss-Rechner und IUPAC JCAMP-DX / NIST MSP Export.
 
 ---
 
@@ -45,7 +45,7 @@
 
 - **NMRexp**: 3.372.987 experimentelle NMR-Datensätze über **6 Kerne** (¹H, ¹³C, ¹⁹F, ³¹P, ¹¹B, ²⁹Si), extrahiert aus knapp 200.000 wissenschaftlichen Publikationen (2010–2024).
 - **nmrshiftdb2**: Über 54.000 organische Moleküle mit DFT-optimierten 3D-Koordinaten und experimentellen ¹³C-Verschiebungen.
-- **MassBank of North America (MoNa)**: 44.696 experimentelle Massenspektren der UC Davis (Oliver Fiehn Lab), unterteilt in hochauflösende LC-MS/MS (Agilent QTOF) und GC-MS (Elektronenstoß-Ionisation EI 70 eV).
+- **MassBank of North America (MoNa)**: 1.756.800 experimentelle Massenspektren und 271.982 Verbindungen der UC Davis (Oliver Fiehn Lab), unterteilt in hochauflösende LC-MS/MS (Agilent QTOF & Orbitrap) und GC-MS (Elektronenstoß-Ionisation EI 70 eV).
 
 Ergänzt wird die Datenbanksuche durch eine **lokale Deep-Learning-Inferenz-Engine** (**est-NMR / DLNMR1** von Wavefunction, Inc.) zur ultraschnellen chemischen Verschiebungsberechnung und einem Algorithmus zum **Symmetrie-Averaging und bipartiten Kuhn-Munkres-Matching** für die automatische Zuordnung experimenteller Signale zu Atomzentren, sowie einen **interaktiven MS-Stick-Viewer mit Neutral-Loss-Rechner**.
 
@@ -88,7 +88,7 @@ Ergänzt wird die Datenbanksuche durch eine **lokale Deep-Learning-Inferenz-Engi
 - 🔬 **3D-Molekülbetrachter (3Dmol.js)**:
   - Dreidimensionaler interaktiver WebGL-Viewer mit lokaler **MMFF94-Kraftfeld-Konformationsoptimierung** und Echtzeit-Minimierungs-Animation.
 - ⚡ **Massenspektrometrie-Integration (MassBank of North America - MoNa)**:
-  - High-Speed Parquet-Pipeline für MoNa (GC-MS EI & hochauflösende LC-MS/MS QTOF/Orbitrap).
+  - High-Speed Parquet-Pipeline für MoNa mit **1.756.800 Spektren** und **271.982 Verbindungen** (GC-MS EI & hochauflösende LC-MS/MS QTOF/Orbitrap).
   - Precursor $m/z$-Intervallsuche ($\pm \text{ppm} / \text{Da}$) via binärem $O(\log N)$ Index.
   - Interaktiver 60-FPS **MS-Stick-Spektren-Viewer** (`viewer_ms.py`) mit tabellarischer Peak-Übersicht und **CSV-Export**.
   - **Neutral-Loss Rechner**: Automatische Identifizierung von Neutralabspaltungen ($-\text{H}_2\text{O}$, $-\text{CO}$, $-\text{NH}_3$, etc.) per Peak-Klick.
@@ -388,8 +388,8 @@ HGTTD/
 ├── models/
 │   └── DLNMR1.pt                  # TorchScript Deep-Learning-Modell (Wavefunction, Inc.)
 ├── mona/                          # MassBank of North America Datenbank & Indizes
-│   ├── mona_spectra.parquet       # 44.696 Massenspektren (GC-MS & LC-MS/MS QTOF)
-│   ├── unique_smiles_index.parquet# Vorfilter-Index für Substruktursuche
+│   ├── mona_spectra.parquet       # 1.756.800 Massenspektren (GC-MS & LC-MS/MS QTOF)
+│   ├── unique_smiles_index.parquet# Vorfilter-Index für Substruktursuche (270k SMILES)
 │   ├── mz_index.npz               # Binärer Precursor-m/z-Index
 │   └── downloads/                 # Heruntergeladene Original-MSP-Archive
 ├── nmr_exp/
